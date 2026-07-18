@@ -1,0 +1,72 @@
+================================================================
+TRITON-X VALIDATION REPORT  --  v4.0 Final
+C. Vasileiou, MSc PADA, July 2026
+================================================================
+
+1. STATIC CODE CHECKS (PASSED)
+----------------------------------------------------------------
+  [x] All source lines are at most 80 characters.
+  [x] All comments are English ASCII; no non-ASCII bytes exist
+      in any source file.
+  [x] No String objects on the Arduino UNO (fixed C buffers and
+      flash-resident strings only; no heap fragmentation).
+  [x] No SoftwareSerial anywhere; UNO-side UART is the Timer2
+      implementation in TimerUart.h, preserving the D10/D12
+      encoder pin-change interrupt.
+  [x] No dynamic allocation on the UNO; all state is static.
+  [x] Every function and file carries the standard header block
+      (Purpose / Arguments / Results / Hardware / Software /
+      Reference).
+  [x] Cross-checked protocol field counts: SYS 10 fields,
+      POSE 9 fields, RAY 5 fields match the ESP32 parsers.
+  [x] UART pin cross-check: UNO D4 RX <- ESP32 GPIO13 TX and
+      UNO D13 TX -> ESP32 GPIO14 RX match both Configuration.h
+      files and the TimerUart register-level pin access
+      (PD4 read, PB5 write).
+  [x] Dashboard JavaScript syntax verified before gzip
+      compression; compressed payload about 7.6 KB.
+
+2. COMPILATION (PASSED ON TARGET TOOLCHAINS)
+----------------------------------------------------------------
+  [x] TRITON_X_UNO compiles for Arduino UNO:
+      Flash 25,650 bytes (79%), SRAM 767 bytes (37%),
+      free SRAM 1,281 bytes.
+  [x] TRITON_X_ESP32 compiles for AI Thinker ESP32-CAM:
+      Flash 1,139,368 bytes (36%), RAM 62,516 bytes (19%),
+      free RAM 265,164 bytes.
+
+3. HARDWARE VALIDATION (PASSED ON THE PHYSICAL ROBOT)
+----------------------------------------------------------------
+  [x] MANUAL: joystick drive, neutral arming, continuous
+      JOY keep-alive (100 ms), 500 ms watchdog stop.
+  [x] LEVEL: phone tilt drive, neutral calibration, dead zone,
+      500 ms watchdog stop.
+  [x] LINE: PD following (Kp=1.5, Kd=0.3, PWM 110), crossing
+      handling, 15 cm sonar terminal stop.
+  [x] OBSTACLE: Guardian FSM cruise/scan/decide, Kalman-filtered
+      sonar, rear-aware reverse, dead-end recovery, anti-loop
+      U-turn after three consecutive turns.
+  [x] MAPPING: heading-held cruise, periodic room survey,
+      encoder+gyro dead reckoning, live 30x30 occupancy grid,
+      automatic pose/map reset on mode reselection.
+  [x] Global cliff safety across MANUAL, LEVEL, OBSTACLE and
+      MAPPING, including direction-aware escape, latched
+      CLIFF LOCK and guarded CLEAR SAFETY LOCK.
+  [x] Camera MJPEG stream (QVGA, about 10 fps) standalone and
+      concurrently with the dashboard and with MAPPING.
+  [x] Wi-Fi AP stability with modem sleep disabled
+      (WiFi.setSleep(false)).
+  [x] Browser-disconnect STOP and browser-heartbeat-loss STOP.
+  [x] UNO-offline detection on the dashboard.
+
+4. DOCUMENTED DESIGN CHARACTERISTICS (NOT DEFECTS)
+----------------------------------------------------------------
+  - MAPPING is dead-reckoning occupancy mapping, not SLAM;
+    gradual drift is expected and stated as future work (LIDAR).
+  - The two-sensor LINE layout cannot distinguish centered
+    travel from a lost line; sensors sit outside the tape.
+  - The obstacle Kalman estimate re-initializes at mode entry
+    and converges within the first few sonar samples.
+  - The occupancy grid resides on the ESP32 (900 cells) to
+    preserve the 2 KB UNO SRAM.
+================================================================

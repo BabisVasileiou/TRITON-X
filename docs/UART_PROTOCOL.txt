@@ -1,0 +1,98 @@
+================================================================
+TRITON-X COMMUNICATION PROTOCOL  --  v4.0 Final
+Newline-delimited ASCII lines. UART 9600 8N1 (ESP32 <-> UNO).
+WebSocket text frames (Browser <-> ESP32, port 81).
+================================================================
+
+1. ESP32 -> ARDUINO UNO
+----------------------------------------------------------------
+  HB                    Link heartbeat, sent every 250 ms. The
+                        UNO stops any running mode if no HB is
+                        received for 1500 ms.
+  MODE:MANUAL           Select a mode. Selection always performs
+  MODE:LEVEL            a full safe transition (motors stop, all
+  MODE:LINE             FSMs reset, servo centered) and then
+  MODE:OBSTACLE         waits for START.
+  MODE:MAPPING          Selecting MAPPING also zeros pose,
+                        encoders and the ESP32 grid.
+  CMD:START             Arm and run the selected mode.
+  CMD:STOP              Immediate stop; mode stays selected.
+  CMD:CLEAR_LOCK        Request release of a latched CLIFF LOCK.
+                        Granted only on confirmed safe floor.
+  CMD:RESET_MAP         Stop, zero pose/encoders and clear map.
+  JOY:x,y               MANUAL command, x/y in -100..+100.
+                        Sent every 100 ms, including neutral
+                        JOY:0,0 (watchdog keep-alive).
+  TLT:forward,turn      LEVEL command, values in -100..+100.
+
+2. ARDUINO UNO -> ESP32
+----------------------------------------------------------------
+  MODE:<name>           Confirms the completed mode transition.
+
+  EVENT:<text>          Asynchronous events, e.g. STARTED,
+                        STOPPED, CLIFF_DETECTED, CLIFF_LOCKED,
+                        CLIFF_CLEARED, SAFETY_LOCK_CLEARED,
+                        CLEAR_LOCK_REJECTED, MAP_RESET,
+                        MANUAL_COMMAND_TIMEOUT,
+                        LEVEL_COMMAND_TIMEOUT,
+                        LINE_OBSTACLE_STOP, OBSTACLE_FRONT,
+                        BROWSER_LINK_LOST, PCF_FAULT_STOP,
+                        START_REJECTED_NO_MODE,
+                        START_REJECTED_LOCKED,
+                        START_REJECTED_PCF, START_REJECTED_MPU.
+
+  SYS:<10 fields>       Periodic system telemetry (250 ms; 500 ms
+                        in MAPPING). Comma-separated:
+                        mode, running(0/1), safety, modeState,
+                        cliffBits(hex), obstacleBits(hex),
+                        pcfHealthy(0/1), mpuHealthy(0/1),
+                        sonarCm(0.1), headingDeg(0.1).
+                        Bit order (bit0..bit3) for both the
+                        cliff and the obstacle byte:
+                        FrontLeft=bit0, FrontRight=bit1,
+                        RearLeft=bit2, RearRight=bit3.
+
+  POSE:<9 fields>       MAPPING pose telemetry every 250 ms:
+                        x, y, headingDeg, sonarCm, state,
+                        encLeft, encRight, travelCm, elapsedSec.
+
+  RAY:<5 fields>        One world-referenced sonar ray:
+                        originX, originY, bearingDeg,
+                        distanceCm, hit(0/1).
+
+3. BROWSER <-> ESP32 (WebSocket, port 81)
+----------------------------------------------------------------
+  Browser -> ESP32:
+    CTRL:HB             Controller heartbeat. Loss for 4000 ms
+                        forces STOP and disables the camera.
+    CAM:ON / CAM:OFF    Enable / disable the MJPEG stream.
+    CMD:RESET_MAP       Clears ESP32 grid, forwards to the UNO.
+    MODE:<name>, CMD:START, CMD:STOP, CMD:CLEAR_LOCK,
+    JOY:x,y, TLT:f,t    Forwarded to the UNO unchanged.
+
+  ESP32 -> Browser:
+    CTRL:ACTIVE         This client is the single controller.
+    CTRL:BUSY           Another controller is already active.
+    CAM:ON/OFF/ERROR    Camera state notification.
+    TEL:{json}          Consolidated telemetry every 500 ms:
+                        uno, mode, running, safety, cliff,
+                        obstacle, pcf, mpu, sonar, heading,
+                        x, y, state, encL, encR, travel,
+                        elapsed, event, cameraReady, cameraOn.
+    MAP:<900 chars>     Occupancy grid, row-major 30x30, one
+                        character per cell:
+                        0 unknown, 1 free, 2 occupied,
+                        3 robot path. Broadcast every 1000 ms
+                        while MAPPING is selected.
+    EVENT:<text>        Forwarded UNO events.
+
+4. SAFETY CHAIN SUMMARY
+----------------------------------------------------------------
+  Browser heartbeat lost (4 s)  -> ESP32 sends CMD:STOP.
+  Browser disconnects           -> ESP32 sends CMD:STOP.
+  UNO heartbeat lost (1.5 s)    -> UNO stops the running mode.
+  JOY/TLT command lost (0.5 s)  -> MANUAL/LEVEL watchdog stop
+                                   and neutral re-arm.
+  Cliff detected                -> global recovery FSM, possible
+                                   latched CLIFF LOCK.
+================================================================

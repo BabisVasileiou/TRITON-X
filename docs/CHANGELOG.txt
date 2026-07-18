@@ -1,0 +1,56 @@
+================================================================
+TRITON-X CHANGELOG  --  Integrated firmware line
+================================================================
+
+v4.0 Final (July 2026)
+----------------------------------------------------------------
+  - Release freeze of the hardware-validated RC5 code base.
+  - Version identifiers unified to "v4.0 Final" in every file.
+  - Companion documentation rewritten as a single consistent
+    set (README, protocol, validation report, changelog,
+    SHA-256 manifest); historical RC notes removed.
+  - No functional code changes relative to RC5.
+
+v4.0-rc5
+----------------------------------------------------------------
+  - MANUAL fix: the dashboard sends JOY commands every 100 ms,
+    including neutral JOY:0,0, so the 500 ms UNO watchdog no
+    longer trips while the joystick rests at center.
+
+v4.0-rc4
+----------------------------------------------------------------
+  - Camera subsystem: initialize once at boot; CAMERA ON only
+    enables the prepared stream (cannot block WebSocket
+    heartbeats). Dedicated MJPEG server on port 82.
+  - Wi-Fi stability: modem sleep disabled, TX power fixed,
+    single-client AP.
+
+v4.0-rc3
+----------------------------------------------------------------
+  - Dashboard stored as a gzip-compressed PROGMEM byte array
+    (about 7.6 KB); faster load and lower RAM usage.
+  - Faster UI feedback paths.
+
+v4.0-rc2
+----------------------------------------------------------------
+  - WebSockets library compatibility fix (broadcastTXT requires
+    a named String lvalue).
+  - Compile fixes for the ESP32 Arduino core.
+
+v4.0-rc1
+----------------------------------------------------------------
+  - First unification of the five validated standalone modes
+    (MANUAL v1.2, LEVEL v1.2, LINE v1.0, OBSTACLE standalone,
+    MAPPING v1.4) under one Arduino UNO firmware with a global
+    cliff safety supervisor, ModeManager, shared hardware layer
+    and the Timer2 UART.
+
+Pre-integration standalone lineage
+----------------------------------------------------------------
+  - MAPPING v1.4: encoder+gyro dead reckoning, UART2 at 9600,
+    heading-hold cruise, room survey scans.
+  - MANUAL/LEVEL v1.2: neutral re-arming, command watchdogs,
+    validated cliff recovery timings (90 PWM cliff turn).
+  - LINE v1.0: two-sensor PD follower, sonar terminal stop.
+  - OBSTACLE standalone: Guardian FSM with Kalman sonar filter.
+================================================================
