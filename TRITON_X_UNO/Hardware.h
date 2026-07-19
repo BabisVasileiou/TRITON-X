@@ -9,7 +9,7 @@
  * Safety
  *   PCF8574 communication failure is latched and prevents operation.
  * Reference
- *   v4.0 Final, derived from validated standalone tests and MAPPING v1.4,
+ *   v4.0-rc5, derived from validated standalone tests and MAPPING v1.4,
  *   C. Vasileiou, July 2026.
  **********/
 
@@ -29,6 +29,20 @@ volatile int8_t rightMotorDirection = 0;
 volatile uint8_t previousPortB = 0;
 volatile bool frontCliffInterruptFlag = false;
 
+/******** function ISR
+ * Purpose
+ *   Services the time-critical interrupt associated with this module.
+ * Arguments
+ *   PCINT0_vect Value supplied to the isr operation.
+ * Results
+ *   Updates state and/or hardware and returns no value.
+ * Hardware
+ *   Uses the shared Arduino UNO hardware layer as required.
+ * Software
+ *   Uses fixed state and bounded operations; no dynamic allocation.
+ * Reference
+ *   v4.0-rc5, C. Vasileiou, July 2026.
+ **********/
 ISR(PCINT0_vect) {
   uint8_t currentPortB = PINB;
   bool leftNow = (currentPortB & _BV(PB2)) != 0;
@@ -57,7 +71,7 @@ ISR(PCINT0_vect) {
  * Software
  *   Uses fixed state and bounded operations; no dynamic allocation.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 float wrapAngle180(float angle) {
   while (angle > 180.0f) {
@@ -82,7 +96,7 @@ float wrapAngle180(float angle) {
  * Software
  *   Uses fixed state and bounded operations; no dynamic allocation.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 float angleDifference(float target, float current) {
   return wrapAngle180(target - current);
@@ -103,7 +117,7 @@ float angleDifference(float target, float current) {
  * Software
  *   Uses fixed state and bounded operations; no dynamic allocation.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 float distanceBetween(float x1, float y1, float x2, float y2) {
   float dx = x2 - x1;
@@ -124,10 +138,24 @@ float distanceBetween(float x1, float y1, float x2, float y2) {
  * Software
  *   Updates encoder direction inference atomically.
  * Reference
- *   v4.0 Final, physical polarity validated on TRITON-X.
+ *   v4.0-rc5, physical polarity validated on TRITON-X.
  **********/
 class MotorDriver {
   public:
+    /******** function begin
+     * Purpose
+     *   Initializes the class hardware and internal state.
+     * Arguments
+     *   None.
+     * Results
+     *   Updates state and/or hardware and returns no value.
+     * Hardware
+     *   Uses the shared Arduino UNO hardware layer as required.
+     * Software
+     *   Uses fixed state and bounded operations; no dynamic allocation.
+     * Reference
+     *   v4.0-rc5, C. Vasileiou, July 2026.
+     **********/
     void begin(void) {
       pinMode(IN1_PIN, OUTPUT);
       pinMode(IN2_PIN, OUTPUT);
@@ -138,6 +166,21 @@ class MotorDriver {
       stop();
     }
 
+    /******** function setMotors
+     * Purpose
+     *   Applies signed PWM commands to both drive motors.
+     * Arguments
+     *   leftSpeed Signed PWM command for the left motor.
+     *   rightSpeed Signed PWM command for the right motor.
+     * Results
+     *   Updates state and/or hardware and returns no value.
+     * Hardware
+     *   Uses the shared Arduino UNO hardware layer as required.
+     * Software
+     *   Uses fixed state and bounded operations; no dynamic allocation.
+     * Reference
+     *   v4.0-rc5, C. Vasileiou, July 2026.
+     **********/
     void setMotors(int leftSpeed, int rightSpeed) {
       leftSpeed = constrain(leftSpeed, -MAX_MOTOR_PWM, MAX_MOTOR_PWM);
       rightSpeed = constrain(rightSpeed, -MAX_MOTOR_PWM, MAX_MOTOR_PWM);
@@ -153,6 +196,20 @@ class MotorDriver {
       driveSide(rightSpeed, IN3_PIN, IN4_PIN, ENB_PIN);
     }
 
+    /******** function stop
+     * Purpose
+     *   Stops both motors and clears their direction state.
+     * Arguments
+     *   None.
+     * Results
+     *   Updates state and/or hardware and returns no value.
+     * Hardware
+     *   Uses the shared Arduino UNO hardware layer as required.
+     * Software
+     *   Uses fixed state and bounded operations; no dynamic allocation.
+     * Reference
+     *   v4.0-rc5, C. Vasileiou, July 2026.
+     **********/
     void stop(void) {
       noInterrupts();
       leftMotorDirection = 0;
@@ -167,6 +224,23 @@ class MotorDriver {
     }
 
   private:
+    /******** function driveSide
+     * Purpose
+     *   Applies one signed command to one L298N motor channel.
+     * Arguments
+     *   speed Signed PWM command for one motor side.
+     *   inA Value supplied to the drive side operation.
+     *   inB Value supplied to the drive side operation.
+     *   enablePin PWM enable pin for the motor channel.
+     * Results
+     *   Updates state and/or hardware and returns no value.
+     * Hardware
+     *   Uses the shared Arduino UNO hardware layer as required.
+     * Software
+     *   Uses fixed state and bounded operations; no dynamic allocation.
+     * Reference
+     *   v4.0-rc5, C. Vasileiou, July 2026.
+     **********/
     void driveSide(int speed, uint8_t inA, uint8_t inB,
                    uint8_t enablePin) {
       if (speed > 0) {
@@ -198,19 +272,62 @@ class MotorDriver {
  * Software
  *   Uses pulseIn() with a bounded 12 ms timeout.
  * Reference
- *   v4.0 Final, derived from MAPPING v1.4.
+ *   v4.0-rc5, derived from MAPPING v1.4.
  **********/
 class Sonar {
   public:
+    /******** function Sonar
+     * Purpose
+     *   Stores the HC-SR04 trigger and echo pin assignments.
+     * Arguments
+     *   triggerPin Digital output pin connected to HC-SR04 TRIG.
+     *   echoPin Digital input pin connected to HC-SR04 ECHO.
+     * Results
+     *   Initializes the object and returns no value.
+     * Hardware
+     *   Uses the HC-SR04 trigger and echo connections.
+     * Software
+     *   Stores fixed pin identifiers; no dynamic allocation.
+     * Reference
+     *   v4.0-rc5, C. Vasileiou, July 2026.
+     **********/
     Sonar(uint8_t triggerPin, uint8_t echoPin)
       : trig(triggerPin), echo(echoPin) {}
 
+    /******** function begin
+     * Purpose
+     *   Initializes the class hardware and internal state.
+     * Arguments
+     *   None.
+     * Results
+     *   Updates state and/or hardware and returns no value.
+     * Hardware
+     *   Uses the shared Arduino UNO hardware layer as required.
+     * Software
+     *   Uses fixed state and bounded operations; no dynamic allocation.
+     * Reference
+     *   v4.0-rc5, C. Vasileiou, July 2026.
+     **********/
     void begin(void) {
       pinMode(trig, OUTPUT);
       pinMode(echo, INPUT);
       digitalWrite(trig, LOW);
     }
 
+    /******** function readDistanceCm
+     * Purpose
+     *   Measures bounded HC-SR04 distance and hit validity.
+     * Arguments
+     *   hit Output flag set when a valid sonar reflection is detected.
+     * Results
+     *   Returns the calculated or requested value.
+     * Hardware
+     *   Uses the shared Arduino UNO hardware layer as required.
+     * Software
+     *   Uses fixed state and bounded operations; no dynamic allocation.
+     * Reference
+     *   v4.0-rc5, C. Vasileiou, July 2026.
+     **********/
     float readDistanceCm(bool& hit) {
       digitalWrite(trig, LOW);
       delayMicroseconds(2);
@@ -254,10 +371,24 @@ class Sonar {
  * Software
  *   Returns false when I2C communication fails.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 class IoExpander {
   public:
+    /******** function begin
+     * Purpose
+     *   Initializes the class hardware and internal state.
+     * Arguments
+     *   address I2C address of the peripheral device.
+     * Results
+     *   Returns true when the stated condition or operation succeeds.
+     * Hardware
+     *   Uses the shared Arduino UNO hardware layer as required.
+     * Software
+     *   Uses fixed state and bounded operations; no dynamic allocation.
+     * Reference
+     *   v4.0-rc5, C. Vasileiou, July 2026.
+     **********/
     bool begin(uint8_t address) {
       addr = address;
       Wire.beginTransmission(addr);
@@ -265,6 +396,20 @@ class IoExpander {
       return Wire.endTransmission() == 0;
     }
 
+    /******** function readByte
+     * Purpose
+     *   Reads one input byte from the PCF8574T.
+     * Arguments
+     *   value Input, output or data value used by the operation.
+     * Results
+     *   Returns true when the stated condition or operation succeeds.
+     * Hardware
+     *   Uses the shared Arduino UNO hardware layer as required.
+     * Software
+     *   Uses fixed state and bounded operations; no dynamic allocation.
+     * Reference
+     *   v4.0-rc5, C. Vasileiou, July 2026.
+     **********/
     bool readByte(uint8_t& value) {
       uint8_t received = Wire.requestFrom(addr, (uint8_t)1);
       if (received != 1 || !Wire.available()) {
@@ -278,8 +423,36 @@ class IoExpander {
     uint8_t addr = 0;
 };
 
+/***** class DebouncedSignal
+ * Purpose
+ *   Filters repeated digital samples into one stable Boolean state.
+ * Specifiers
+ *   None. The debounce threshold is a compile-time constant.
+ * Methods
+ *   update() accepts one raw sample. value() returns the stable state.
+ * Hardware
+ *   Used for digital obstacle and cliff sensor inputs.
+ * Software
+ *   Uses a bounded sample counter and no dynamic allocation.
+ * Reference
+ *   v4.0-rc5, C. Vasileiou, July 2026.
+ **********/
 class DebouncedSignal {
   public:
+    /******** function update
+     * Purpose
+     *   Updates a debounced digital signal from one raw sample.
+     * Arguments
+     *   rawValue Latest unfiltered digital sensor sample.
+     * Results
+     *   Updates state and/or hardware and returns no value.
+     * Hardware
+     *   Uses the shared Arduino UNO hardware layer as required.
+     * Software
+     *   Uses fixed state and bounded operations; no dynamic allocation.
+     * Reference
+     *   v4.0-rc5, C. Vasileiou, July 2026.
+     **********/
     void update(bool rawValue) {
       if (!initialized) {
         initialized = true;
@@ -301,6 +474,20 @@ class DebouncedSignal {
       }
     }
 
+    /******** function value
+     * Purpose
+     *   Returns the current stable debounced signal value.
+     * Arguments
+     *   None.
+     * Results
+     *   Returns true when the stated condition or operation succeeds.
+     * Hardware
+     *   Uses the shared Arduino UNO hardware layer as required.
+     * Software
+     *   Uses fixed state and bounded operations; no dynamic allocation.
+     * Reference
+     *   v4.0-rc5, C. Vasileiou, July 2026.
+     **********/
     bool value(void) const {
       return stableValue;
     }
@@ -325,10 +512,24 @@ class DebouncedSignal {
  * Software
  *   Direct register access avoids an external MPU library.
  * Reference
- *   v4.0 Final, derived from MAPPING v1.4.
+ *   v4.0-rc5, derived from MAPPING v1.4.
  **********/
 class Mpu6050Gyro {
   public:
+    /******** function begin
+     * Purpose
+     *   Initializes the class hardware and internal state.
+     * Arguments
+     *   None.
+     * Results
+     *   Returns true when the stated condition or operation succeeds.
+     * Hardware
+     *   Uses the shared Arduino UNO hardware layer as required.
+     * Software
+     *   Uses fixed state and bounded operations; no dynamic allocation.
+     * Reference
+     *   v4.0-rc5, C. Vasileiou, July 2026.
+     **********/
     bool begin(void) {
       if (!writeRegister(0x6B, 0x00)) {
         return false;
@@ -343,6 +544,20 @@ class Mpu6050Gyro {
       return true;
     }
 
+    /******** function calibrate
+     * Purpose
+     *   Calculates stationary Z-axis gyro bias from samples.
+     * Arguments
+     *   samples Number of samples used for calibration.
+     * Results
+     *   Returns true when the stated condition or operation succeeds.
+     * Hardware
+     *   Uses the shared Arduino UNO hardware layer as required.
+     * Software
+     *   Uses fixed state and bounded operations; no dynamic allocation.
+     * Reference
+     *   v4.0-rc5, C. Vasileiou, July 2026.
+     **********/
     bool calibrate(uint16_t samples) {
       long sum = 0;
       uint16_t valid = 0;
@@ -361,6 +576,20 @@ class Mpu6050Gyro {
       return true;
     }
 
+    /******** function readZDegPerSec
+     * Purpose
+     *   Returns the calibrated Z-axis angular rate.
+     * Arguments
+     *   value Input, output or data value used by the operation.
+     * Results
+     *   Returns true when the stated condition or operation succeeds.
+     * Hardware
+     *   Uses the shared Arduino UNO hardware layer as required.
+     * Software
+     *   Uses fixed state and bounded operations; no dynamic allocation.
+     * Reference
+     *   v4.0-rc5, C. Vasileiou, July 2026.
+     **********/
     bool readZDegPerSec(float& value) {
       int16_t rawZ = 0;
       if (!readRawGyroZ(rawZ)) {
@@ -373,6 +602,21 @@ class Mpu6050Gyro {
   private:
     float biasRaw = 0.0f;
 
+    /******** function writeRegister
+     * Purpose
+     *   Writes one byte to an MPU-6050 register.
+     * Arguments
+     *   reg Peripheral register address.
+     *   value Input, output or data value used by the operation.
+     * Results
+     *   Returns true when the stated condition or operation succeeds.
+     * Hardware
+     *   Uses the shared Arduino UNO hardware layer as required.
+     * Software
+     *   Uses fixed state and bounded operations; no dynamic allocation.
+     * Reference
+     *   v4.0-rc5, C. Vasileiou, July 2026.
+     **********/
     bool writeRegister(uint8_t reg, uint8_t value) {
       Wire.beginTransmission(MPU6050_ADDR);
       Wire.write(reg);
@@ -380,6 +624,20 @@ class Mpu6050Gyro {
       return Wire.endTransmission() == 0;
     }
 
+    /******** function readRawGyroZ
+     * Purpose
+     *   Reads the raw MPU-6050 Z-axis gyro sample.
+     * Arguments
+     *   rawZ Output variable receiving the raw Z-axis gyro sample.
+     * Results
+     *   Returns true when the stated condition or operation succeeds.
+     * Hardware
+     *   Uses the shared Arduino UNO hardware layer as required.
+     * Software
+     *   Uses fixed state and bounded operations; no dynamic allocation.
+     * Reference
+     *   v4.0-rc5, C. Vasileiou, July 2026.
+     **********/
     bool readRawGyroZ(int16_t& rawZ) {
       Wire.beginTransmission(MPU6050_ADDR);
       Wire.write(0x43);
@@ -434,6 +692,21 @@ unsigned long lastOdometryUs = 0;
 const __FlashStringHelper* lastLcdLine1 = NULL;
 const __FlashStringHelper* lastLcdLine2 = NULL;
 
+/******** function reportStatus
+ * Purpose
+ *   Updates the LCD only when either display row changes.
+ * Arguments
+ *   line1 Text displayed on the first LCD row.
+ *   line2 Text displayed on the second LCD row.
+ * Results
+ *   Updates state and/or hardware and returns no value.
+ * Hardware
+ *   Uses the shared Arduino UNO hardware layer as required.
+ * Software
+ *   Uses fixed state and bounded operations; no dynamic allocation.
+ * Reference
+ *   v4.0-rc5, C. Vasileiou, July 2026.
+ **********/
 void reportStatus(const __FlashStringHelper* line1,
                   const __FlashStringHelper* line2) {
   if (line1 == lastLcdLine1 && line2 == lastLcdLine2) {
@@ -460,7 +733,7 @@ void reportStatus(const __FlashStringHelper* line1,
  * Software
  *   Uses fixed state and bounded operations; no dynamic allocation.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 void cliffLeftFrontIsr(void) {
   frontCliffInterruptFlag = true;
@@ -478,7 +751,7 @@ void cliffLeftFrontIsr(void) {
  * Software
  *   Uses fixed state and bounded operations; no dynamic allocation.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 void cliffRightFrontIsr(void) {
   frontCliffInterruptFlag = true;
@@ -496,7 +769,7 @@ void cliffRightFrontIsr(void) {
  * Software
  *   Uses fixed state and bounded operations; no dynamic allocation.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 void setupEncoderInterrupts(void) {
   pinMode(ENC_LEFT_PIN, INPUT_PULLUP);
@@ -518,7 +791,7 @@ void setupEncoderInterrupts(void) {
  * Software
  *   Uses fixed state and bounded operations; no dynamic allocation.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 void copySensors(void) {
   sensors.obstacleFrontLeft =
@@ -551,7 +824,7 @@ void copySensors(void) {
  * Software
  *   Uses fixed state and bounded operations; no dynamic allocation.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 void refreshSensors(bool forceUpdate = false) {
   unsigned long now = millis();
@@ -620,7 +893,7 @@ void refreshSensors(bool forceUpdate = false) {
  * Software
  *   Uses fixed state and bounded operations; no dynamic allocation.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 bool frontCliffDetected(void) {
   return sensors.cliffFrontLeft || sensors.cliffFrontRight;
@@ -638,7 +911,7 @@ bool frontCliffDetected(void) {
  * Software
  *   Uses fixed state and bounded operations; no dynamic allocation.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 bool rearCliffDetected(void) {
   return sensors.cliffRearLeft || sensors.cliffRearRight;
@@ -656,7 +929,7 @@ bool rearCliffDetected(void) {
  * Software
  *   Uses fixed state and bounded operations; no dynamic allocation.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 bool anyCliffDetected(void) {
   return frontCliffDetected() || rearCliffDetected();
@@ -674,7 +947,7 @@ bool anyCliffDetected(void) {
  * Software
  *   Uses fixed state and bounded operations; no dynamic allocation.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 bool frontObstacleDetected(void) {
   return sensors.obstacleFrontLeft || sensors.obstacleFrontRight;
@@ -692,7 +965,7 @@ bool frontObstacleDetected(void) {
  * Software
  *   Uses fixed state and bounded operations; no dynamic allocation.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 bool rearObstacleDetected(void) {
   return sensors.obstacleRearLeft || sensors.obstacleRearRight;
@@ -710,7 +983,7 @@ bool rearObstacleDetected(void) {
  * Software
  *   Uses fixed state and bounded operations; no dynamic allocation.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 bool frontPathSafe(void) {
   return !frontCliffDetected() && !frontObstacleDetected();
@@ -728,7 +1001,7 @@ bool frontPathSafe(void) {
  * Software
  *   Uses fixed state and bounded operations; no dynamic allocation.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 bool rearPathSafe(void) {
   return !rearCliffDetected() && !rearObstacleDetected();
@@ -746,7 +1019,7 @@ bool rearPathSafe(void) {
  * Software
  *   Uses fixed state and bounded operations; no dynamic allocation.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 int8_t turnAwayFromCliff(void) {
   bool left = sensors.cliffFrontLeft || sensors.cliffRearLeft;
@@ -772,7 +1045,7 @@ int8_t turnAwayFromCliff(void) {
  * Software
  *   Uses fixed state and bounded operations; no dynamic allocation.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 void resetPoseAndEncoders(void) {
   noInterrupts();
@@ -801,7 +1074,7 @@ void resetPoseAndEncoders(void) {
  * Software
  *   Uses fixed state and bounded operations; no dynamic allocation.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 void updateOdometry(void) {
   unsigned long nowUs = micros();
@@ -865,7 +1138,7 @@ void updateOdometry(void) {
  * Software
  *   Uses fixed state and bounded operations; no dynamic allocation.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 bool runHeadingTurn(int pwm, float targetHeading) {
   float error = angleDifference(targetHeading, headingDeg);

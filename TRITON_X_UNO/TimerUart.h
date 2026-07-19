@@ -10,7 +10,7 @@
  * Limitations
  *   Fixed at 9600 baud. Timer2 must not be used by another library.
  * Reference
- *   v4.0 Final, derived from MAPPING v1.4, C. Vasileiou, July 2026.
+ *   v4.0-rc5, derived from MAPPING v1.4, C. Vasileiou, July 2026.
  **********/
 
 #ifndef TRITON_X_TIMER_UART_H
@@ -42,10 +42,38 @@ volatile uint8_t uartTxCountdown = 0;
 volatile uint8_t uartTxBitIndex = 0;
 volatile uint16_t uartTxFrame = 0;
 
+/******** function readUartRxPin
+ * Purpose
+ *   Reads the fixed Arduino D4 UART receive level.
+ * Arguments
+ *   None.
+ * Results
+ *   Returns true when the stated condition or operation succeeds.
+ * Hardware
+ *   Uses Arduino D4, D13 and Timer2 communication resources.
+ * Software
+ *   Uses fixed ring buffers and interrupt-driven 9600 baud timing.
+ * Reference
+ *   v4.0-rc5, C. Vasileiou, July 2026.
+ **********/
 inline bool readUartRxPin(void) {
   return (PIND & _BV(PD4)) != 0;
 }
 
+/******** function writeUartTxPin
+ * Purpose
+ *   Writes the fixed Arduino D13 UART transmit level.
+ * Arguments
+ *   high Requested logic level for the transmit pin.
+ * Results
+ *   Updates state and/or hardware and returns no value.
+ * Hardware
+ *   Uses Arduino D4, D13 and Timer2 communication resources.
+ * Software
+ *   Uses fixed ring buffers and interrupt-driven 9600 baud timing.
+ * Reference
+ *   v4.0-rc5, C. Vasileiou, July 2026.
+ **********/
 inline void writeUartTxPin(bool high) {
   if (high) {
     PORTB |= _BV(PB5);
@@ -54,6 +82,20 @@ inline void writeUartTxPin(bool high) {
   }
 }
 
+/******** function ISR
+ * Purpose
+ *   Services the time-critical interrupt associated with this module.
+ * Arguments
+ *   TIMER2_COMPA_vect Value supplied to the isr operation.
+ * Results
+ *   Updates state and/or hardware and returns no value.
+ * Hardware
+ *   Uses Arduino D4, D13 and Timer2 communication resources.
+ * Software
+ *   Uses fixed ring buffers and interrupt-driven 9600 baud timing.
+ * Reference
+ *   v4.0-rc5, C. Vasileiou, July 2026.
+ **********/
 ISR(TIMER2_COMPA_vect) {
   bool rxHigh = readUartRxPin();
 
@@ -132,10 +174,24 @@ ISR(TIMER2_COMPA_vect) {
  * Software
  *   Uses ring buffers and the TIMER2_COMPA interrupt.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 class FixedTimerUart : public Print {
   public:
+    /******** function begin
+     * Purpose
+     *   Initializes the class hardware and internal state.
+     * Arguments
+     *   baudRate Requested UART baud rate; fixed timing is used.
+     * Results
+     *   Updates state and/or hardware and returns no value.
+     * Hardware
+     *   Uses Arduino D4, D13 and Timer2 communication resources.
+     * Software
+     *   Uses fixed ring buffers and interrupt-driven 9600 baud timing.
+     * Reference
+     *   v4.0-rc5, C. Vasileiou, July 2026.
+     **********/
     void begin(unsigned long baudRate) {
       (void)baudRate;
       pinMode(ESP_RX_PIN, INPUT_PULLUP);
@@ -160,12 +216,40 @@ class FixedTimerUart : public Print {
       SREG = oldSreg;
     }
 
+    /******** function available
+     * Purpose
+     *   Returns the number of buffered UART receive bytes.
+     * Arguments
+     *   None.
+     * Results
+     *   Returns the calculated or requested value.
+     * Hardware
+     *   Uses Arduino D4, D13 and Timer2 communication resources.
+     * Software
+     *   Uses fixed ring buffers and interrupt-driven 9600 baud timing.
+     * Reference
+     *   v4.0-rc5, C. Vasileiou, July 2026.
+     **********/
     int available(void) {
       uint8_t head = uartRxHead;
       uint8_t tail = uartRxTail;
       return (uint8_t)((head - tail) & UART_RX_MASK);
     }
 
+    /******** function read
+     * Purpose
+     *   Removes and returns one buffered UART receive byte.
+     * Arguments
+     *   None.
+     * Results
+     *   Returns the calculated or requested value.
+     * Hardware
+     *   Uses Arduino D4, D13 and Timer2 communication resources.
+     * Software
+     *   Uses fixed ring buffers and interrupt-driven 9600 baud timing.
+     * Reference
+     *   v4.0-rc5, C. Vasileiou, July 2026.
+     **********/
     int read(void) {
       if (uartRxHead == uartRxTail) {
         return -1;
@@ -175,6 +259,20 @@ class FixedTimerUart : public Print {
       return value;
     }
 
+    /******** function write
+     * Purpose
+     *   Queues one byte for interrupt-driven UART transmission.
+     * Arguments
+     *   value Input, output or data value used by the operation.
+     * Results
+     *   Returns the calculated or requested value.
+     * Hardware
+     *   Uses Arduino D4, D13 and Timer2 communication resources.
+     * Software
+     *   Uses fixed ring buffers and interrupt-driven 9600 baud timing.
+     * Reference
+     *   v4.0-rc5, C. Vasileiou, July 2026.
+     **********/
     size_t write(uint8_t value) override {
       uint8_t nextHead =
         (uint8_t)((uartTxHead + 1U) & UART_TX_MASK);
