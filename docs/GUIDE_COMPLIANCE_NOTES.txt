@@ -1,0 +1,16 @@
+TRITON-X CODE-GUIDE COMPLIANCE UPDATE
+=====================================
+
+The executable algorithms, constants, pin assignments, state transitions,
+commands and simulation behaviour have not been changed.
+
+Changes applied:
+- Standard program headers with Purpose, Hardware, Software and Reference.
+- Standard function headers with Purpose, Arguments, Results, Hardware,
+  Software and Reference.
+- Missing class documentation added where required.
+- Source and comment lines limited to 80 ASCII characters.
+- Non-ASCII dash characters replaced with ASCII hyphens.
+- Long expressions were wrapped without changing their values or logic.
+
+Prepared for C. Vasileiou, July 2026.
