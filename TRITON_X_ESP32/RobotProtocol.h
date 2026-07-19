@@ -10,7 +10,7 @@
  *   Only one browser is the active controller. Its disconnection sends
  *   STOP immediately and disables the optional camera stream.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 
 #ifndef TRITON_X_ROBOT_PROTOCOL_H
@@ -68,7 +68,7 @@ unsigned long robotElapsedSeconds = 0;
  * Software
  *   Uses bounded state and the ESP32 framework communication APIs.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 void sendRobotCommand(const char* command) {
   robotSerial.println(command);
@@ -86,7 +86,7 @@ void sendRobotCommand(const char* command) {
  * Software
  *   Uses bounded state and the ESP32 framework communication APIs.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 void sendStop(void) {
   sendRobotCommand("CMD:STOP");
@@ -104,7 +104,7 @@ void sendStop(void) {
  * Software
  *   Uses bounded state and the ESP32 framework communication APIs.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 bool unoOnline(void) {
   return lastUnoLineMs != 0 &&
@@ -123,7 +123,7 @@ bool unoOnline(void) {
  * Software
  *   Uses bounded state and the ESP32 framework communication APIs.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 void resetMapTelemetry(void) {
   clearMap();
@@ -148,7 +148,7 @@ void resetMapTelemetry(void) {
  * Software
  *   Uses bounded state and the ESP32 framework communication APIs.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 void parseSystemLine(const char* payload) {
   char mode[16] = "IDLE";
@@ -206,7 +206,7 @@ void parseSystemLine(const char* payload) {
  * Software
  *   Uses bounded state and the ESP32 framework communication APIs.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 void parsePoseLine(const char* payload) {
   float x = 0.0f;
@@ -260,7 +260,7 @@ void parsePoseLine(const char* payload) {
  * Software
  *   Uses bounded state and the ESP32 framework communication APIs.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 void parseRayLine(const char* payload) {
   float x = 0.0f;
@@ -294,7 +294,7 @@ void parseRayLine(const char* payload) {
  * Software
  *   Uses bounded state and the ESP32 framework communication APIs.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 void handleRobotLine(const char* line) {
   lastUnoLineMs = millis();
@@ -336,7 +336,7 @@ void handleRobotLine(const char* line) {
  * Software
  *   Uses bounded state and the ESP32 framework communication APIs.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 void processRobotSerial(void) {
   while (robotSerial.available()) {
@@ -367,7 +367,7 @@ void processRobotSerial(void) {
  * Software
  *   Uses bounded state and the ESP32 framework communication APIs.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 void broadcastMap(void) {
   /*
@@ -391,7 +391,7 @@ void broadcastMap(void) {
  * Software
  *   Uses bounded state and the ESP32 framework communication APIs.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 void broadcastTelemetry(void) {
   char payload[600];
@@ -441,7 +441,7 @@ void broadcastTelemetry(void) {
  * Software
  *   Uses bounded state and the ESP32 framework communication APIs.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 void notifyCameraState(uint8_t clientId) {
   if (!cameraAvailable) {
@@ -466,7 +466,7 @@ void notifyCameraState(uint8_t clientId) {
  * Software
  *   Uses bounded state and the ESP32 framework communication APIs.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 void handleControllerCommand(uint8_t clientId, const char* command) {
   lastControllerHeartbeatMs = millis();
@@ -509,6 +509,23 @@ void handleControllerCommand(uint8_t clientId, const char* command) {
   }
 }
 
+/******** function onWebSocketEvent
+ * Purpose
+ *   Processes browser connection, command and close events.
+ * Arguments
+ *   clientId Identifier of the WebSocket client.
+ *   type WebSocket event type reported by the library.
+ *   payload Pointer to the received WebSocket payload bytes.
+ *   length Number of valid bytes in the received payload.
+ * Results
+ *   Updates state and/or hardware and returns no value.
+ * Hardware
+ *   Uses ESP32-CAM Wi-Fi, WebSocket and UART resources.
+ * Software
+ *   Uses fixed buffers and the ESP32 Arduino communication APIs.
+ * Reference
+ *   v4.0-rc5, C. Vasileiou, July 2026.
+ **********/
 void onWebSocketEvent(uint8_t clientId, WStype_t type,
                       uint8_t* payload, size_t length) {
   switch (type) {
@@ -573,7 +590,7 @@ void onWebSocketEvent(uint8_t clientId, WStype_t type,
  * Software
  *   Uses bounded state and the ESP32 framework communication APIs.
  * Reference
- *   v4.0 Final, C. Vasileiou, July 2026.
+ *   v4.0-rc5, C. Vasileiou, July 2026.
  **********/
 void serviceProtocol(void) {
   httpServer.handleClient();
